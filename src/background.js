@@ -1,5 +1,5 @@
 ;(function() {
-    var voter = JSON.parse(localStorage.voter),
+    var voter = JSON.parse(localStorage.voter || '{}'),
         VOTING_BOARD = 'vtmm',
         VOTING_LIST = '今日上映';
     
