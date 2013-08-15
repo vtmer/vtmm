@@ -9,6 +9,7 @@
 
     if (!Trello.authorized()) {
         Trello.authorize({
+            name: '维他妈电影院选影助手',
             type: 'popup',
             scope: { read: true, write: true },
             success: onAuthorized
