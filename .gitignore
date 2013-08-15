@@ -1,6 +1,7 @@
 *.swp
 *~
 *.pyc
+*.pem
 
 server.conf
 
