@@ -1,28 +1,24 @@
 ;(function() {
-    var BOARD = 'from vtmm',
-        LIST = 'foobar',
-        voter = {
-            boardName: BOARD,
-            listName: LIST
-        };
-
-    var setMovie = function(tab) {
-        voter.movie = {
-            name: tab.title,
-            desc: tab.url
-        };
+    var voter = JSON.parse(localStorage.voter),
+        VOTING_BOARD = 'vtmm',
+        VOTING_LIST = '今日上映';
+    
+    var saveVoter = function() {
+        localStorage.voter = JSON.stringify({
+            userId: voter.userId,
+            name: voter.name,
+            boardId: voter.boardId
+        });
     };
 
-    var doAuthorize = function(stuff) {
+    var authorizeVoter = function() {
         var dfd = new $.Deferred();
 
         if (!Trello.authorized()) {
             // only get token from localStorage
-            Trello.authorize({ presist: true }, function() {
+            Trello.authorize({ presist: true, success: function() {
                 dfd.resolve();
-            }, function() {
-                dfd.reject();
-            });
+            }});
         } else {
             dfd.resolve();
         }
@@ -30,39 +26,31 @@
         return dfd.promise();
     };
 
-    var getUser = function() {
+    var initVoter = function() {
         var dfd = new $.Deferred();
+        
+        if (!$.isEmptyObject(voter)) {
+            dfd.resolve();
 
-        Trello.members.get('me')
-            .done(function(user) {
-                voter.user = {
-                    id: user.id,
-                    name: user.fullName,
-                    idBoards: user.idBoards
-                };
-                dfd.resolve();
-            })
-            .fail(dfd.reject);
+            return dfd.promise();
+        }
 
-        return dfd.promise();
-    };
+        voter = {};
+        Trello.get('members/me', function(user) {
+            voter.userId = user.id;
+            voter.name = user.fullName;
+        });
 
-    var getBoard = function() {
-        var dfd = new $.Deferred();
-
-        $.each(voter.user.idBoards, function(idx, id) {
-            Trello.boards.get(id, {lists: 'open'}).done(function(board) {
-                if (board.name === voter.boardName) {
-                    voter.board = {
-                        id: board.id,
-                        name: board.name,
-                        idLists: $.map(board.lists, function(e, i) {
-                            return e.id;
-                        })
-                    };
+        Trello.get('members/me/boards', function(boards) {
+            $.each(boards, function(idx, board) {
+                if (board.name === VOTING_BOARD) {
+                    voter.boardId = board.id;
                     dfd.resolve();
+
+                    saveVoter(voter);
                 }
             });
+            dfd.reject();
         });
 
         return dfd.promise();
@@ -71,15 +59,19 @@
     var getList = function() {
         var dfd = new $.Deferred();
 
-        $.each(voter.board.idLists, function(idx, id) {
-            Trello.lists.get(id, {cards: 'open'}).done(function(list) {
-                if (list.name === voter.listName) {
-                    voter.list = {
-                        id: list.id,
-                        name: list.name,
-                        cards: list.cards
-                    };
-                    dfd.resolve();
+        var _getCards = function(listId) {
+            Trello.get('lists/' + listId, {cards: 'open'}, function(list) {
+                voter.list = list;
+                voter.cards = list.cards;
+                dfd.resolve();
+            });
+        };
+
+        Trello.get('boards/' + voter.boardId + '/lists/open', function(lists) {
+            $.each(lists, function(idx, list) {
+                if (list.name === VOTING_LIST) {
+                    voter.listId = list.id;
+                    _getCards(list.id);
                 }
             });
         });
@@ -87,33 +79,43 @@
         return dfd.promise();
     };
 
-    var doVote = function() {
+    var voteMovie = function() {
         var dfd = new $.Deferred(),
-            voteCard = null,
-            card;
+            foundCard = false;
 
-        var vote = function(card) {     // subscribe to the card
+
+        var _voteMovie = function(card) {     // subscribe to the card
             Trello.put('cards/' + card.id + '/idMembers',
-                        { value: voter.user.id }, function(resp) {
-                console.log(resp, voter);
+                       {value: voter.userId}).done(function() {
+                dfd.resolve();                                                   
             });
         };
 
-        for (var i = 0;i < voter.list.cards;i++) {
-            card = voter.list.cards[i];
-            console.log(card);
-            if (card.name === voter.movie.name) {
-                voteCard = card;
-                vote(card);
+        for (var i = 0;i < voter.cards.length;i++) {
+            if (voter.cards[i].name === voter.movie.name) {
+                _voteMovie(voter.cards[i]);
+                foundCard = true;
+                break;
             }
         }
 
-        if (!voteCard) {    // create it
-            Trello.post('lists/' + voter.list.id + '/cards', voter.movie)
-            .done(function(card) {
-                vote(card);
-            });
+        if (!foundCard) {
+            // create a card
+            Trello.post('lists/' + voter.listId + '/cards', voter.movie)
+                  .done(_voteMovie);
         }
+
+        return dfd.promise();
+    };
+
+    var setMovie = function(tab) {
+        var dfd = $.Deferred();
+
+        voter.movie = {
+            name: tab.title,
+            desc: tab.url
+        };
+        dfd.resolve();
 
         return dfd.promise();
     };
@@ -125,18 +127,21 @@
         // store trello's token
         if (req.name === 'store') {
             localStorage.trello_token = req.value;
-            resp({msg: 'token stored'});
+
+            voter = null;
+            authorizeVoter()
+                .then(initVoter)
+                .then(resp(voter));
         }
     };
 
-    var onClicked = function(tab) {
-        setMovie(tab);
-        doAuthorize()
-            .then(getUser)
-            .then(getBoard)
+    var onClicked = function(tab) {authorizeVoter().then(function() {
+        setMovie(tab)
             .then(getList)
-            .then(doVote);
-    };
+            .then(voteMovie)
+            .always(function() { console.log(voter); });
+    });
+    saveVoter(voter);};
 
     chrome.extension.onRequest.addListener(onRequest);
     chrome.pageAction.onClicked.addListener(onClicked);
