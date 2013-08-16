@@ -1,0 +1,22 @@
+# 维他妈影院选片助手 / VTMM
+
+## 怎么用？
+
+
+### Trello 部分
+
+请加入 [vtmm](https://trello.com/b/dNw2trBR/vtmm) 这个板！
+
+
+### 插件部分
+
+下载 [vtmm.crx](vtmm.crx)，然后在 chrome 里打开 chrome://extensions，把 crx 插
+件拖进去就好。
+
+
+然后随便打开一个豆瓣电影条目页面，例如
+[这个](http://movie.douban.com/subject/1291841/)，应该就会弹出一个授权页面，果
+断点 allow 就好了。
+
+
+然后应该会在地址栏里看到一个 icon，果断点击就好了！
