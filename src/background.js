@@ -154,7 +154,8 @@
         chrome.pageAction.show(sender.tab.id);
 
         // store trello's token
-        if (req.name === 'store') {
+        if (req.name === 'store' &&
+            localStorage.trello_token != req.value) {
             localStorage.trello_token = req.value;
 
             voter = null;
