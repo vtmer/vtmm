@@ -16,7 +16,7 @@
 
         if (!Trello.authorized()) {
             // only get token from localStorage
-            Trello.authorize({ presist: true, success: function() {
+            Trello.authorize({ interactive: false, success: function() {
                 dfd.resolve();
             }});
         } else {
