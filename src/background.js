@@ -85,8 +85,11 @@
 
 
         var _voteMovie = function(card) {     // subscribe to the card
+            var members = card.idMembers;
+            members.push(voter.userId);
+
             Trello.put('cards/' + card.id + '/idMembers',
-                       {value: voter.userId}).done(function() {
+                       {value: members.join(',')}).done(function() {
                 dfd.resolve();                                                   
             });
         };
