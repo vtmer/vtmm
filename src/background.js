@@ -105,6 +105,7 @@
                        {value: members.join(',')}).done(function() {
                 // release the lock
                 delete localStorage[voter.movie.desc];
+                delete localStorage[voter.movie.desc + '/renew'];
                 dfd.resolve();
             });
         };
@@ -127,18 +128,21 @@
     };
 
     var setMovie = function(tab) {
-        var dfd = $.Deferred();
+        var dfd = $.Deferred(),
+            current = new Date();
 
         voter.movie = {
             name: tab.title,
             desc: tab.url
         };
 
-        if (localStorage[tab.url]) {
+        if (localStorage[tab.url] &&
+            localStorage[tab.url + '/renew'] < current.getTime()) {
             dfd.reject();
         } else {
             // avoid duplicate voting
             localStorage[tab.url] = true;
+            localStorage[tab.url + '/renew'] = current.getTime() + 600;
             dfd.resolve();
         }
 
