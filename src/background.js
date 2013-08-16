@@ -1,4 +1,17 @@
 ;(function() {
+    // bootstrap the extension when install it
+    (function() {
+        if (localStorage.bootstraped) {     // already installed
+            return;
+        }
+
+        // remove legacy token
+        delete localStorage.voter;
+        delete localStorage.trello_token;
+
+        localStorage.bootstraped = true;
+    })();
+
     var voter = JSON.parse(localStorage.voter || '{}'),
         VOTING_BOARD = 'vtmm',
         VOTING_LIST = '今日上映';

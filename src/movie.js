@@ -1,4 +1,15 @@
 ;(function() {
+    // bootstrap the extension when install it
+    (function() {
+        if (localStorage.bootstraped) {     // already installed
+            return;
+        }
+
+        delete localStorage.trello_token;
+
+        localStorage.bootstraped = true;
+    })();
+
     var onAuthorized = function() {
         // forward to background script
         chrome.extension.sendRequest({
