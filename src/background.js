@@ -90,7 +90,9 @@
 
             Trello.put('cards/' + card.id + '/idMembers',
                        {value: members.join(',')}).done(function() {
-                dfd.resolve();                                                   
+                // release the lock
+                delete localStorage[voter.movie.desc];
+                dfd.resolve();
             });
         };
 
@@ -118,7 +120,14 @@
             name: tab.title,
             desc: tab.url
         };
-        dfd.resolve();
+
+        if (localStorage[tab.url]) {
+            dfd.reject();
+        } else {
+            // avoid duplicate voting
+            localStorage[tab.url] = true;
+            dfd.resolve();
+        }
 
         return dfd.promise();
     };
